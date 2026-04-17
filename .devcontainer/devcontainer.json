@@ -1,0 +1,19 @@
+{
+  "name": "abs-organizer-rs",
+  "image": "mcr.microsoft.com/devcontainers/rust:1-1-bullseye",
+  "forwardPorts": [3000],
+  "remoteEnv": {
+    "TESTING": "1",
+    "ABB_FIXTURE": "/workspaces/${localWorkspaceFolderBasename}/testdata/abb-ls-r1.txt",
+    "TEST_STATE": "/workspaces/${localWorkspaceFolderBasename}/.tmp/testing-state.json",
+    "BIND_ADDR": "0.0.0.0:3000"
+  },
+  "postCreateCommand": "cargo install cargo-watch || true && mkdir -p .tmp",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer"
+      ]
+    }
+  }
+}

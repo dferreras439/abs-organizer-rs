@@ -1,0 +1,1501 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>abb-sort</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --bg: #000000;
+      --panel: #050505;
+      --panel-2: #0a0a0a;
+      --panel-3: #121212;
+      --text: #f3f6fb;
+      --muted: #98a2b3;
+      --border: rgba(255,255,255,.08);
+      --accent: #7aa2ff;
+      --accent-2: #8be9b1;
+      --danger: #ff8c8c;
+      --warning: #ffd27a;
+      --shadow: 0 18px 48px rgba(0,0,0,.55);
+      --radius: 14px;
+      --radius-sm: 10px;
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); }
+
+    body {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      background: #000000;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-badge {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px rgba(122,162,255,.16);
+      flex: 0 0 auto;
+    }
+
+    .brand h1 {
+      font-size: 18px;
+      line-height: 1.2;
+      margin: 0;
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+
+    .brand-sub {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .topbar-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      min-height: 0;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--border);
+      padding: 18px 16px;
+      overflow: auto;
+      background: #020202;
+    }
+
+    .sidebar h2,
+    .main h2 {
+      margin: 0 0 14px;
+      font-size: 14px;
+      color: var(--muted);
+      letter-spacing: .3px;
+      text-transform: uppercase;
+    }
+
+    .bundle-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .bundle-btn {
+      text-align: left;
+      width: 100%;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: var(--radius-sm);
+      padding: 12px 13px;
+      cursor: pointer;
+      transition: .15s ease;
+      box-shadow: 0 0 0 rgba(0,0,0,0);
+    }
+
+    .bundle-btn:hover {
+      border-color: rgba(122,162,255,.45);
+      background: #101010;
+      transform: translateY(-1px);
+    }
+
+    .bundle-btn.active {
+      background: rgba(122,162,255,.12);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(122,162,255,.12), var(--shadow);
+    }
+
+    .bundle-title {
+      font-size: 14px;
+      line-height: 1.35;
+      word-break: break-word;
+      margin-bottom: 6px;
+    }
+
+    .bundle-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      white-space: nowrap;
+    }
+
+    .pill.ok { color: var(--accent-2); }
+    .pill.warn { color: var(--warning); }
+
+    .main {
+      padding: 20px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 18px;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 0;
+    }
+
+    .panel.compact {
+      grid-template-rows: auto auto;
+      align-self: start;
+    }
+
+    .panel.files-panel {
+      min-height: 0;
+    }
+
+    .panel-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      background: #080808;
+    }
+
+    .panel.compact .panel-body {
+      padding-bottom: 0;
+    }
+
+    .panel-head h3 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .file-selectable-row {
+      cursor: pointer;
+    }
+
+    .file-selectable-row:hover {
+      background: rgba(122,162,255,.08);
+    }
+
+    .file-selectable-row.selected {
+      background: rgba(122,162,255,.16);
+    }
+
+    .file-selectable-row.selected:hover {
+      background: rgba(122,162,255,.22);
+    }
+
+    .panel-body {
+      padding: 18px;
+      min-height: 0;
+    }
+
+    .bundle-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    button,
+    .button-link {
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font: inherit;
+      cursor: pointer;
+      transition: .15s ease;
+    }
+
+    button:hover,
+    .button-link:hover {
+      background: #141414;
+      border-color: rgba(122,162,255,.45);
+      transform: translateY(-1px);
+    }
+
+    button.primary {
+      background: #7aa2ff;
+      border-color: #7aa2ff;
+      color: #091122;
+      font-weight: 700;
+    }
+
+    button.ghost {
+      background: transparent;
+    }
+
+    button.danger {
+      border-color: rgba(255,140,140,.35);
+      color: var(--danger);
+      background: rgba(255,140,140,.08);
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .draft-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    #drafts {
+      display: grid;
+      gap: 16px;
+    }
+
+    #files {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .files-panel .panel-body {
+      min-height: 0;
+      height: 100%;
+      display: flex;
+    }
+
+    .files-panel .panel-head {
+      border-top: 1px solid var(--border);
+    }
+
+    .draft-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .field.wide {
+      grid-column: span 2;
+    }
+
+    .field label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    input {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid var(--border);
+      background: #080808;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 11px 12px;
+      font: inherit;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(122,162,255,.16);
+    }
+
+    input:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .draft-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 0 14px 14px;
+      flex-wrap: wrap;
+    }
+
+    .draft-actions-left,
+    .draft-actions-right {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .status-text {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .status-text.error {
+      color: var(--danger);
+    }
+
+    .status-text.ok {
+      color: var(--accent-2);
+    }
+
+    .file-table-wrap {
+      overflow: auto;
+      max-height: 100%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+      position: sticky;
+      top: 0;
+      background: var(--panel);
+      z-index: 1;
+    }
+
+    .mono {
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .assigned {
+      color: var(--accent-2);
+    }
+
+    .unassigned {
+      color: var(--warning);
+    }
+
+    .book-group-row {
+      cursor: pointer;
+      background: rgba(255,255,255,.025);
+    }
+
+    .book-group-row:hover {
+      background: rgba(255,255,255,.05);
+    }
+
+    .pill-button {
+      border: 1px solid rgba(255,140,140,.35);
+      color: var(--danger);
+      background: rgba(255,140,140,.08);
+      border-radius: 999px;
+      padding: 4px 8px;
+      font: inherit;
+      font-size: 12px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .pill-button:hover {
+      background: rgba(255,140,140,.14);
+      border-color: rgba(255,140,140,.5);
+      transform: none;
+    }
+
+    .empty-state {
+      padding: 36px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .footer-note {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 0 2px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    @media (max-width: 1100px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .main,
+      .sidebar {
+        padding: 14px;
+      }
+
+      .main {
+        display: block;
+        overflow: visible;
+        gap: 0;
+      }
+
+      .main > .panel {
+        box-shadow: none;
+        overflow: visible;
+      }
+
+      .main > .panel.compact {
+        border-bottom: 0;
+        border-radius: var(--radius) var(--radius) 0 0;
+        margin-bottom: 0;
+      }
+
+      .main > .panel.files-panel {
+        border-radius: 0 0 var(--radius) var(--radius);
+        min-height: auto;
+      }
+
+      .files-panel .panel-head {
+        border-top: 0;
+      }
+
+      .files-panel .panel-body {
+        min-height: auto;
+        height: auto;
+        display: block;
+      }
+
+      #files {
+        min-height: 0;
+        overflow: visible;
+        padding-right: 0;
+      }
+
+      .file-table-wrap {
+        overflow: auto;
+        max-height: none;
+      }
+
+      .draft-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .field.wide {
+        grid-column: span 2;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .topbar {
+        padding: 14px;
+      }
+
+      .draft-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .field.wide {
+        grid-column: span 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-badge"></div>
+      <div>
+        <h1>abb-sort</h1>
+        <div class="brand-sub" id="app-meta">Loading library state…</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button id="refresh-btn" class="ghost" type="button">Refresh</button>
+      <button id="verify-btn" class="ghost" type="button">Verify</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <h2>ABB Ingest List</h2>
+      <div id="bundles" class="bundle-list"></div>
+    </aside>
+
+    <main class="main">
+      <section class="panel compact">
+        <div class="panel-head">
+          <div>
+            <h3>Configure book</h3>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div id="drafts" class="draft-list"></div>
+        </div>
+      </section>
+
+      <section class="panel files-panel">
+        <div class="panel-head">
+          <div>
+            <h3>Select files for book</h3>
+            <div class="muted">Ranges are inclusive, for example <span class="mono">1-3 7 10-12</span>.</div>
+          </div>
+          <div>
+            <button id="range-mode-toggle" type="button" class="ghost">Select range</button>
+            <button id="clear-selection-btn" type="button" class="ghost">Clear selection</button>
+            <button id="select-all-btn" type="button" class="ghost">Select all</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div id="files"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    let appState = null;
+    let currentBundle = null;
+    const draftStore = {};
+    const collapsedBooksByBundle = {};
+    const collapsedBooksInitializedByBundle = {};
+    const fileSelectionStateByBundle = {};
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function parseRanges(input) {
+      const out = [];
+      const seen = new Set();
+      const text = String(input || "").trim();
+      if (!text) return [];
+
+      for (const token of text.split(/\s+/)) {
+        if (!token) continue;
+        const range = token.match(/^(\d+)-(\d+)$/);
+        if (range) {
+          const start = Number(range[1]);
+          const end = Number(range[2]);
+          if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < 1 || end < start) {
+            throw new Error(`Invalid range: ${token}`);
+          }
+          for (let i = start; i <= end; i++) {
+            if (!seen.has(i)) {
+              seen.add(i);
+              out.push(i);
+            }
+          }
+          continue;
+        }
+
+        const single = Number(token);
+        if (!Number.isInteger(single) || single < 1) {
+          throw new Error(`Invalid number: ${token}`);
+        }
+        if (!seen.has(single)) {
+          seen.add(single);
+          out.push(single);
+        }
+      }
+
+      return out;
+    }
+
+    function getCurrentBundleState() {
+      if (!currentBundle) return null;
+      return appState?.bundles?.find(b => b.rel_path === currentBundle.rel_path) || null;
+    }
+
+    function guessesForBundle(bundle) {
+      return bundle?.guess_options || { author: [], series: [], volume: [], book: [] };
+    }
+
+    function draftIsUntouched(draft) {
+      return !!draft
+        && !String(draft.author || "").trim()
+        && !String(draft.series || "").trim()
+        && !String(draft.volume || "").trim()
+        && !String(draft.book || "").trim()
+        && !String(draft.narrator || "").trim()
+        && !String(draft.fileRanges || "").trim();
+    }
+
+    function datalistId(bundleRel, field) {
+      const safe = bundleRel.replace(/[^a-zA-Z0-9_-]/g, "_");
+      return `dl_${safe}_${field}`;
+    }
+
+    function parentPath(path) {
+      const parts = String(path || "").split("/");
+      parts.pop();
+      return parts.join("/");
+    }
+
+    function groupFilesForDisplay(files) {
+      const assignedGroups = new Map();
+      const unassigned = [];
+
+      for (const file of files || []) {
+        if (!file.assigned || !file.assigned_to) {
+          unassigned.push(file);
+          continue;
+        }
+
+        const key = parentPath(file.assigned_to);
+        if (!assignedGroups.has(key)) {
+          assignedGroups.set(key, []);
+        }
+        assignedGroups.get(key).push(file);
+      }
+
+      return {
+        unassigned,
+        assignedGroups: [...assignedGroups.entries()]
+      };
+    }
+
+    function extractAssignedBooks(bundle) {
+      const { assignedGroups } = groupFilesForDisplay(bundle.files || []);
+
+      return assignedGroups.map(([bookPath, files]) => {
+        const segments = bookPath.split("/").filter(Boolean);
+        const label = segments[segments.length - 1] || bookPath || "Assigned files";
+
+        return {
+          bookPath,
+          label,
+          sourceFiles: files.map(file => file.rel_path),
+          files,
+          fileCount: files.length
+        };
+      });
+    }
+
+    function collapsedBooksForBundle(bundleRel) {
+      if (!collapsedBooksByBundle[bundleRel]) {
+        collapsedBooksByBundle[bundleRel] = new Set();
+      }
+      return collapsedBooksByBundle[bundleRel];
+    }
+
+    function collapsedBooksInitializedForBundle(bundleRel) {
+      if (!collapsedBooksInitializedByBundle[bundleRel]) {
+        collapsedBooksInitializedByBundle[bundleRel] = new Set();
+      }
+      return collapsedBooksInitializedByBundle[bundleRel];
+    }
+
+    function getFileSelectionState(bundleRel) {
+      if (!fileSelectionStateByBundle[bundleRel]) {
+        fileSelectionStateByBundle[bundleRel] = {
+          mode: "single",
+          anchorIndex: null,
+          selectedIndexes: []
+        };
+      }
+      return fileSelectionStateByBundle[bundleRel];
+    }
+
+    function setFileSelectionMode(bundleRel, mode) {
+      const state = getFileSelectionState(bundleRel);
+      state.mode = mode;
+      state.anchorIndex = null;
+      state.selectedIndexes = [];
+    }
+
+    function clearSelectedIndexes(bundleRel) {
+      const state = getFileSelectionState(bundleRel);
+      state.anchorIndex = null;
+      setSelectedIndexes(bundleRel, []);
+    }
+
+    function selectAllUnassignedFiles(bundleRel) {
+      const bundle = appState?.bundles?.find(b => b.rel_path === bundleRel);
+      if (!bundle) return;
+
+      const { unassigned } = groupFilesForDisplay(bundle.files);
+      const indexes = unassigned
+        .map(file => file.index)
+        .filter(index => Number.isInteger(index) && index >= 1);
+
+      const state = getFileSelectionState(bundleRel);
+      state.anchorIndex = indexes.length ? indexes[indexes.length - 1] : null;
+      setSelectedIndexes(bundleRel, indexes);
+    }
+
+    function indexesToRangeString(indexes) {
+      const sorted = [...new Set(indexes)]
+        .filter(n => Number.isInteger(n) && n >= 1)
+        .sort((a, b) => a - b);
+
+      if (!sorted.length) return "";
+
+      const parts = [];
+      let start = sorted[0];
+      let prev = sorted[0];
+
+      for (let i = 1; i < sorted.length; i++) {
+        const cur = sorted[i];
+        if (cur === prev + 1) {
+          prev = cur;
+          continue;
+        }
+        parts.push(start === prev ? `${start}` : `${start}-${prev}`);
+        start = prev = cur;
+      }
+
+      parts.push(start === prev ? `${start}` : `${start}-${prev}`);
+      return parts.join(" ");
+    }
+
+    function syncSelectedIndexesToDraft(bundleRel) {
+      const state = getFileSelectionState(bundleRel);
+      const draft = draftStore[bundleRel];
+      if (!draft) return;
+      draft.fileRanges = indexesToRangeString(state.selectedIndexes);
+    }
+
+    function setSelectedIndexes(bundleRel, indexes) {
+      const state = getFileSelectionState(bundleRel);
+      state.selectedIndexes = [...new Set(indexes)].sort((a, b) => a - b);
+      syncSelectedIndexesToDraft(bundleRel);
+    }
+
+    function toggleSingleFileSelection(bundleRel, fileIndex) {
+      const state = getFileSelectionState(bundleRel);
+      const set = new Set(state.selectedIndexes);
+      if (set.has(fileIndex)) {
+        set.delete(fileIndex);
+      } else {
+        set.add(fileIndex);
+      }
+      state.anchorIndex = fileIndex;
+      setSelectedIndexes(bundleRel, [...set]);
+    }
+
+    function selectFileRange(bundleRel, fileIndex) {
+      const state = getFileSelectionState(bundleRel);
+
+      if (state.anchorIndex == null) {
+        state.anchorIndex = fileIndex;
+        setSelectedIndexes(bundleRel, [fileIndex]);
+        return;
+      }
+
+      const start = Math.min(state.anchorIndex, fileIndex);
+      const end = Math.max(state.anchorIndex, fileIndex);
+      const indexes = [];
+      for (let i = start; i <= end; i++) indexes.push(i);
+
+      state.anchorIndex = fileIndex;
+      setSelectedIndexes(bundleRel, indexes);
+    }
+
+    function handleFileRowSelection(bundleRel, fileIndex) {
+      const state = getFileSelectionState(bundleRel);
+      if (state.mode === "range") {
+        selectFileRange(bundleRel, fileIndex);
+      } else {
+        toggleSingleFileSelection(bundleRel, fileIndex);
+      }
+    }
+
+    function toggleBookCollapse(bookPath) {
+      const bundle = getCurrentBundleState();
+      if (!bundle) return;
+
+      const collapsedBooks = collapsedBooksForBundle(bundle.rel_path);
+      if (collapsedBooks.has(bookPath)) {
+        collapsedBooks.delete(bookPath);
+      } else {
+        collapsedBooks.add(bookPath);
+      }
+
+      renderFiles(bundle);
+    }
+
+    function createDraft(bundle) {
+      const guesses = guessesForBundle(bundle);
+      return {
+        author: guesses.author?.[0] || "",
+        series: guesses.series?.[0] || "",
+        volume: "",
+        book: guesses.book?.[0] || "",
+        narrator: "",
+        fileRanges: "",
+        status: "",
+        statusKind: "",
+        busy: false
+      };
+    }
+
+    function ensureBundleDraft(bundle) {
+      if (!bundle) return null;
+      if (!draftStore[bundle.rel_path]) {
+        draftStore[bundle.rel_path] = createDraft(bundle);
+      }
+      return draftStore[bundle.rel_path];
+    }
+
+    async function loadGuessesForBundle(bundleRel, sampleIndex = 1) {
+      const r = await fetch("/api/guess", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bundle_rel: bundleRel,
+          sample_index: sampleIndex
+        })
+      });
+
+      if (!r.ok) {
+        let message = await r.text();
+        try {
+          const parsed = JSON.parse(message);
+          message = parsed.error || message;
+        } catch (_) {}
+        throw new Error(message);
+      }
+
+      const guesses = await r.json();
+
+      if (appState?.bundles) {
+        const bundle = appState.bundles.find(b => b.rel_path === bundleRel);
+        if (bundle) {
+          bundle.guess_options = guesses;
+        }
+      }
+
+      const current = getCurrentBundleState();
+      if (current && current.rel_path === bundleRel) {
+        current.guess_options = guesses;
+      }
+
+      return guesses;
+    }
+
+    async function loadState() {
+      const refreshBtn = document.getElementById("refresh-btn");
+      refreshBtn.disabled = true;
+
+      try {
+        appState = await fetch("/api/state").then(async r => {
+          if (!r.ok) throw new Error(await r.text());
+          return r.json();
+        });
+
+        document.getElementById("app-meta").textContent =
+          `${appState.total_assigned_files} assigned / ${appState.total_source_files} total`;
+
+        if (!currentBundle && appState.bundles.length) {
+          currentBundle = appState.bundles[0];
+        } else if (currentBundle) {
+          currentBundle = appState.bundles.find(b => b.rel_path === currentBundle.rel_path) || appState.bundles[0] || null;
+        }
+
+        if (currentBundle && !draftStore[currentBundle.rel_path]) {
+          draftStore[currentBundle.rel_path] = createDraft(getCurrentBundleState() || currentBundle);
+        }
+
+        renderBundles();
+        renderCurrentBundle();
+
+        if (currentBundle) {
+          const selectedRel = currentBundle.rel_path;
+
+          loadGuessesForBundle(selectedRel)
+            .then(() => {
+              const liveBundle = getCurrentBundleState();
+              if (!liveBundle || liveBundle.rel_path !== selectedRel) return;
+
+              if (draftIsUntouched(draftStore[selectedRel])) {
+                draftStore[selectedRel] = createDraft(liveBundle);
+              }
+
+              renderDrafts(liveBundle);
+            })
+            .catch(err => {
+              alert(`Failed to load guesses: ${err.message || err}`);
+            });
+        }
+      } catch (err) {
+        alert(`Failed to load state: ${err.message || err}`);
+      } finally {
+        refreshBtn.disabled = false;
+      }
+    }
+
+    function renderBundles() {
+      const el = document.getElementById("bundles");
+      el.innerHTML = "";
+
+      if (!appState?.bundles?.length) {
+        el.innerHTML = `<div class="empty-state">No bundles found.</div>`;
+        return;
+      }
+
+      for (const bundle of appState.bundles) {
+        const isActive = currentBundle && bundle.rel_path === currentBundle.rel_path;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `bundle-btn${isActive ? " active" : ""}`;
+        btn.innerHTML = `
+          <div class="bundle-title">${escapeHtml(bundle.rel_path)}</div>
+          <div class="bundle-meta">
+            <span class="pill">${bundle.file_count} files</span>
+            <span class="pill ${bundle.unassigned_count === 0 ? "ok" : "warn"}">${bundle.unassigned_count} unassigned</span>
+          </div>
+        `;
+        btn.addEventListener("click", () => {
+          currentBundle = bundle;
+
+          if (!draftStore[bundle.rel_path]) {
+            draftStore[bundle.rel_path] = createDraft(getCurrentBundleState() || bundle);
+          }
+
+          renderBundles();
+          renderCurrentBundle();
+
+          const selectedRel = bundle.rel_path;
+
+          loadGuessesForBundle(selectedRel)
+            .then(() => {
+              const liveBundle = getCurrentBundleState();
+              if (!liveBundle || liveBundle.rel_path !== selectedRel) return;
+
+              if (draftIsUntouched(draftStore[selectedRel])) {
+                draftStore[selectedRel] = createDraft(liveBundle);
+              }
+
+              renderDrafts(liveBundle);
+            })
+            .catch(err => {
+              alert(`Failed to load guesses: ${err.message || err}`);
+            });
+        });
+        el.appendChild(btn);
+      }
+    }
+
+    function renderCurrentBundle() {
+      const bundle = getCurrentBundleState();
+      const draftsEl = document.getElementById("drafts");
+      const filesEl = document.getElementById("files");
+
+      if (!bundle) {
+        draftsEl.innerHTML = `<div class="empty-state">Select a bundle to start assigning files.</div>`;
+        filesEl.innerHTML = `<div class="empty-state">No files to show.</div>`;
+        return;
+      }
+
+      renderDrafts(bundle);
+      renderFiles(bundle);
+    }
+
+    function renderDrafts(bundle) {
+      const draft = ensureBundleDraft(bundle);
+      const guesses = guessesForBundle(bundle);
+      const draftsEl = document.getElementById("drafts");
+      const hasSeries = !!String(draft.series || "").trim();
+
+      const authorDl = datalistId(bundle.rel_path, "author");
+      const seriesDl = datalistId(bundle.rel_path, "series");
+      const bookDl = datalistId(bundle.rel_path, "book");
+
+      const datalists = `
+        <datalist id="${authorDl}">
+          ${guesses.author.map(v => `<option value="${escapeHtml(v)}"></option>`).join("")}
+        </datalist>
+        <datalist id="${seriesDl}">
+          ${guesses.series.map(v => `<option value="${escapeHtml(v)}"></option>`).join("")}
+        </datalist>
+        <datalist id="${bookDl}">
+          ${guesses.book.map(v => `<option value="${escapeHtml(v)}"></option>`).join("")}
+        </datalist>
+      `;
+
+      draftsEl.innerHTML = datalists + `
+        <div class="draft-grid">
+          <div class="field">
+            <label>Author</label>
+            <input data-field="author" list="${authorDl}" value="${escapeHtml(draft.author)}" placeholder="Author">
+          </div>
+
+          <div class="field">
+            <label>Series</label>
+            <input data-field="series" list="${seriesDl}" value="${escapeHtml(draft.series)}" placeholder="Series">
+          </div>
+
+          <div class="field">
+            <label>Volume</label>
+            <input
+              data-field="volume"
+              value="${escapeHtml(draft.volume)}"
+              placeholder="1"
+              ${hasSeries ? "" : "disabled"}
+            >
+          </div>
+
+          <div class="field">
+            <label>Book</label>
+            <input data-field="book" list="${bookDl}" value="${escapeHtml(draft.book)}" placeholder="Book">
+          </div>
+          <div class="field wide">
+            <label>Files</label>
+            <input data-field="fileRanges" value="${escapeHtml(draft.fileRanges)}" placeholder="1-3 7 10-12">
+          </div>
+        </div>
+
+        <div class="draft-actions">
+          <div class="draft-actions-left">
+            <div class="status-text ${draft.statusKind || ""}">
+              ${escapeHtml(draft.status || "")}
+            </div>
+          </div>
+          <div class="draft-actions-right">
+            <button type="button" class="ghost" data-action="prefill-draft">Reset guesses</button>
+            <button type="button" class="primary" data-action="assign-draft" ${draft.busy ? "disabled" : ""}>Assign</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderFiles(bundle) {
+      const filesEl = document.getElementById("files");
+      if (!bundle.files?.length) {
+        filesEl.innerHTML = `<div class="empty-state">No files in this bundle.</div>`;
+        return;
+      }
+
+      const { unassigned } = groupFilesForDisplay(bundle.files);
+      const selectionState = getFileSelectionState(bundle.rel_path);
+      const selectedSet = new Set(selectionState.selectedIndexes);
+      const assignedBooks = extractAssignedBooks(bundle);
+      const collapsedBooks = collapsedBooksForBundle(bundle.rel_path);
+      const collapsedBooksInitialized = collapsedBooksInitializedForBundle(bundle.rel_path);
+
+      for (const { bookPath } of assignedBooks) {
+        if (!collapsedBooksInitialized.has(bookPath)) {
+          collapsedBooks.add(bookPath);
+          collapsedBooksInitialized.add(bookPath);
+        }
+      }
+
+      let rowsHtml = "";
+
+      for (const { bookPath, label, sourceFiles, files, fileCount } of assignedBooks) {
+        const collapsed = collapsedBooks.has(bookPath);
+        const sourceFilesJson = escapeHtml(JSON.stringify(sourceFiles));
+
+        rowsHtml += `
+          <tr class="book-group-row" data-action="toggle-book" data-book-path="${escapeHtml(bookPath)}">
+            <td class="mono">-</td>
+            <td>
+              <strong>${escapeHtml(label)}</strong>
+              <span class="muted">(${fileCount} file${fileCount === 1 ? "" : "s"})</span>
+            </td>
+            <td class="assigned">Assigned</td>
+            <td class="mono">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                <span>${escapeHtml(bookPath)} ${collapsed ? "&#9656;" : "&#9662;"}</span>
+                <button
+                  type="button"
+                  class="pill-button"
+                  data-action="unassign-book"
+                  data-source-files='${sourceFilesJson}'
+                >
+                  Unassign
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+
+        if (!collapsed) {
+          rowsHtml += files.map(file => `
+            <tr>
+              <td class="mono">${file.index}</td>
+              <td style="padding-left: 28px;">${escapeHtml(file.name)}</td>
+              <td class="assigned">Assigned</td>
+              <td class="mono">${escapeHtml(file.assigned_to)}</td>
+            </tr>
+          `).join("");
+        }
+      }
+
+      rowsHtml += unassigned.map(file => `
+        <tr
+          class="file-selectable-row ${selectedSet.has(file.index) ? "selected" : ""}"
+          data-action="select-file"
+          data-file-index="${file.index}"
+        >
+          <td class="mono">${file.index}</td>
+          <td>${escapeHtml(file.name)}</td>
+          <td class="unassigned">Unassigned</td>
+          <td class="mono"></td>
+        </tr>
+      `).join("");
+
+      const toggleBtn = document.getElementById("range-mode-toggle");
+      if (toggleBtn) {
+        toggleBtn.textContent = selectionState.mode === "range" ? "Select range: on" : "Select range";
+      }
+
+      filesEl.innerHTML = `
+        <div class="file-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 84px;">#</th>
+                <th>File</th>
+                <th style="width: 150px;">Status</th>
+                <th>Assigned to</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+        <div class="footer-note" style="margin-top: 12px;">
+          Assigned files are grouped by completed book. Click a group to expand or collapse it, or use Unassign to return that book's files to the unassigned pool.
+        </div>
+      `;
+    }
+
+    function updateDraftField(bundleRel, field, value) {
+      const draft = draftStore[bundleRel];
+      if (!draft) return;
+
+      draft[field] = value;
+
+      if (field === "fileRanges") {
+        try {
+          const parsed = parseRanges(value);
+          const state = getFileSelectionState(bundleRel);
+          state.selectedIndexes = parsed;
+          state.anchorIndex = parsed.length ? parsed[parsed.length - 1] : null;
+        } catch (_) {
+        }
+      }
+
+      if (field === "series" && !String(value || "").trim()) {
+        draft.volume = "";
+      }
+    }
+
+    async function resetDraftToGuesses(bundleRel) {
+      const bundle = appState?.bundles?.find(b => b.rel_path === bundleRel);
+      if (!bundle) return;
+
+      const guesses = await loadGuessesForBundle(bundleRel);
+      const draft = draftStore[bundleRel];
+      if (!draft) return;
+
+      draft.author = guesses.author?.[0] || "";
+      draft.series = guesses.series?.[0] || "";
+      draft.volume = "";
+      draft.book = guesses.book?.[0] || "";
+      draft.narrator = "";
+      draft.fileRanges = "";
+      const selectionState = getFileSelectionState(bundleRel);
+      selectionState.anchorIndex = null;
+      selectionState.selectedIndexes = [];
+      draft.status = "Reset to guessed values.";
+      draft.statusKind = "";
+    }
+
+    async function assignDraft(bundleRel) {
+      const bundle = appState?.bundles?.find(b => b.rel_path === bundleRel);
+      if (!bundle) return;
+
+      const draft = draftStore[bundleRel];
+      if (!draft) return;
+
+      draft.status = "";
+      draft.statusKind = "";
+      draft.busy = true;
+      renderDrafts(bundle);
+
+      try {
+        const fileIndexes = parseRanges(draft.fileRanges);
+        if (!draft.author.trim()) throw new Error("Author is required.");
+        if (!draft.book.trim()) throw new Error("Book is required.");
+        if (!fileIndexes.length) throw new Error("At least one file range is required.");
+
+        const normalizedSeries = (draft.series || "").trim();
+        const normalizedVolume = normalizedSeries ? draft.volume : "";
+
+        const payload = {
+          bundle_rel: bundleRel,
+          author: draft.author,
+          series: normalizedSeries,
+          volume: normalizedVolume,
+          book: draft.book,
+          narrator: draft.narrator,
+          file_indexes: fileIndexes
+        };
+
+        const r = await fetch("/api/assign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!r.ok) {
+          let message = await r.text();
+          try {
+            const parsed = JSON.parse(message);
+            message = parsed.error || message;
+          } catch (_) {}
+          throw new Error(message);
+        }
+
+        draft.status = "Assigned.";
+        draft.statusKind = "ok";
+
+        draftStore[bundleRel] = createDraft(bundle);
+        const selectionState = getFileSelectionState(bundleRel);
+        selectionState.anchorIndex = null;
+        selectionState.selectedIndexes = [];
+
+        await loadState();
+      } catch (err) {
+        draft.busy = false;
+        draft.status = err.message || String(err);
+        draft.statusKind = "error";
+        renderDrafts(bundle);
+      }
+    }
+
+    async function unassignBook(bundleRel, sourceFiles) {
+      const bundle = appState?.bundles?.find(b => b.rel_path === bundleRel);
+      if (!bundle) return;
+
+      if (!Array.isArray(sourceFiles) || !sourceFiles.length) {
+        alert("No source files found for this assigned book.");
+        return;
+      }
+
+      const confirmed = window.confirm(
+        `Unassign this book?\n\n${sourceFiles.join("\n")}`
+      );
+      if (!confirmed) return;
+
+      try {
+        const r = await fetch("/api/unassign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source_files: sourceFiles })
+        });
+
+        if (!r.ok) {
+          let message = await r.text();
+          try {
+            const parsed = JSON.parse(message);
+            message = parsed.error || message;
+          } catch (_) {}
+          throw new Error(message);
+        }
+
+        draftStore[bundleRel] = createDraft(bundle);
+        await loadState();
+      } catch (err) {
+        alert(`Unassign failed: ${err.message || err}`);
+      }
+    }
+
+    async function verifyLibrary() {
+      const btn = document.getElementById("verify-btn");
+      btn.disabled = true;
+      try {
+        const r = await fetch("/api/verify");
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || "Verification failed.");
+        if (data.ok) {
+          alert(`Verification OK\n\n${data.total_assigned_files}/${data.total_source_files} assigned`);
+        } else {
+          alert(
+            `Verification failed\n\nAssigned: ${data.total_assigned_files}/${data.total_source_files}\nMissing: ${data.missing_files.length}\n\n` +
+            data.missing_files.slice(0, 25).join("\n")
+          );
+        }
+      } catch (err) {
+        alert(`Verify failed: ${err.message || err}`);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById("refresh-btn").addEventListener("click", loadState);
+    document.getElementById("verify-btn").addEventListener("click", verifyLibrary);
+
+    document.getElementById("drafts").addEventListener("input", (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLInputElement)) return;
+      const field = target.dataset.field;
+      const bundle = getCurrentBundleState();
+      if (!bundle || !field) return;
+
+      updateDraftField(bundle.rel_path, field, target.value);
+
+      if (field === "series") {
+        const volumeInput = document.querySelector('#drafts input[data-field="volume"]');
+        if (volumeInput) {
+          const hasSeries = !!String(target.value || "").trim();
+          volumeInput.disabled = !hasSeries;
+          if (!hasSeries) {
+            volumeInput.value = "";
+          }
+        }
+      }
+    });
+
+    document.getElementById("drafts").addEventListener("click", async (e) => {
+      const button = e.target.closest("button");
+      if (!button) return;
+      const action = button.dataset.action;
+      const bundle = getCurrentBundleState();
+      if (!bundle || !action) return;
+
+      if (action === "prefill-draft") {
+        try {
+          await resetDraftToGuesses(bundle.rel_path);
+          renderDrafts(bundle);
+        } catch (err) {
+          alert(`Failed to load guesses: ${err.message || err}`);
+        }
+        return;
+      }
+
+      if (action === "assign-draft") {
+        await assignDraft(bundle.rel_path);
+      }
+    });
+
+    document.getElementById("files").addEventListener("click", async (e) => {
+      const button = e.target.closest("button");
+      const row = e.target.closest("tr");
+      const bundle = getCurrentBundleState();
+      if (!bundle) return;
+
+      if (button && button.dataset.action === "unassign-book") {
+        e.stopPropagation();
+        const sourceFiles = JSON.parse(button.dataset.sourceFiles || "[]");
+        await unassignBook(bundle.rel_path, sourceFiles);
+        return;
+      }
+
+      if (row?.dataset.action === "toggle-book") {
+        const bookPath = row.dataset.bookPath;
+        if (bookPath) {
+          toggleBookCollapse(bookPath);
+        }
+        return;
+      }
+
+      if (row?.dataset.action === "select-file") {
+        const fileIndex = Number(row.dataset.fileIndex);
+        if (Number.isInteger(fileIndex) && fileIndex >= 1) {
+          handleFileRowSelection(bundle.rel_path, fileIndex);
+          renderFiles(bundle);
+          renderDrafts(bundle);
+        }
+      }
+    });
+
+    document.getElementById("range-mode-toggle").addEventListener("click", () => {
+      const bundle = getCurrentBundleState();
+      if (!bundle) return;
+
+      const state = getFileSelectionState(bundle.rel_path);
+      const nextMode = state.mode === "range" ? "single" : "range";
+      setFileSelectionMode(bundle.rel_path, nextMode);
+      renderFiles(bundle);
+      renderDrafts(bundle);
+    });
+
+    document.getElementById("clear-selection-btn").addEventListener("click", () => {
+      const bundle = getCurrentBundleState();
+      if (!bundle) return;
+
+      clearSelectedIndexes(bundle.rel_path);
+      renderFiles(bundle);
+      renderDrafts(bundle);
+    });
+
+    document.getElementById("select-all-btn").addEventListener("click", () => {
+      const bundle = getCurrentBundleState();
+      if (!bundle) return;
+
+      selectAllUnassignedFiles(bundle.rel_path);
+      renderFiles(bundle);
+      renderDrafts(bundle);
+    });
+
+    loadState();
+  </script>
+</body>
+</html>
